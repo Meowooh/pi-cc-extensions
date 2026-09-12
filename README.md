@@ -1,6 +1,4 @@
-> **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光。Working 只显示转圈和文字；输入框下方使用 pi-open-tui 的两行底栏和 Pi 默认深色配色，整秒耗时并入目录/Git 行，模型在左、上下文和用量在右。详见 [定制说明](LOCAL-CHANGES.md)。
-
-通过 `/theme` 选择 `cc-codex`，可启用 Codex CLI 风格的整套灰阶配色，包含终端背景、对话文字、深灰输入框、消息卡片和弹窗；切换主题或正常退出时恢复原终端底色。
+> **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光。Working 只显示转圈和文字；输入框下方使用 pi-open-tui 的两行底栏，整秒耗时并入目录/Git 行，模型在左、上下文和用量在右。详见 [定制说明](LOCAL-CHANGES.md)。
 
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%">
@@ -44,7 +42,7 @@ pi install git:github.com/Meowooh/pi-cc-extensions@quiet-ui
 | 配置面板              | `Style / Diff / Thinking / UI / Feature` 五页签                                 | `/ccstyle`                                      |
 | 上下文检查            | 查看上下文占用，并预览 System prompt、Memory、Skills、Tools definition 和消息内容 | `/context`                                      |
 | Session/Subagent 引用 | 搜索并注入历史 Session 或现有 SubAgent 的有效上下文                             | `@`                                             |
-| 主题                  | 随包提供 CC Codex、CC Dark、CC Light 主题                                       | `/theme`                                        |
+| 主题                  | 随包提供内置 CC Dark、CC Light 主题                                             | `/theme`                                        |
 
 ## 配置
 

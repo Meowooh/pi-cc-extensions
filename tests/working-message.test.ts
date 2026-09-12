@@ -19,9 +19,6 @@ function install() {
 	let installations = 0;
 	let renders = 0;
 	const ui = {
-		getTheme() {
-			return undefined;
-		},
 		setWorkingMessage(message?: string) {
 			messages.push(message);
 		},
