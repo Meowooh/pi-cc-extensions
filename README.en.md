@@ -1,4 +1,4 @@
-> **Meowooh custom fork**: keeps the spinners, removes Working / Thinking ellipses and text shimmer, uses whole-second timing, and puts the model on the left with context usage on the right. See [customization notes](LOCAL-CHANGES.md).
+> **Meowooh custom fork**: keeps the spinners and removes Working / Thinking ellipses and text shimmer. Working stays a plain label; whole-second timing and run output appear below the editor, with the model on the left and context usage on the right. See [customization notes](LOCAL-CHANGES.md).
 
 <p align="center">
   <img src="./assets/readme/hero.en.svg" width="100%" alt="pi-cc-extensions: a productivity extension suite for Pi">
@@ -80,7 +80,7 @@ If the upstream npm package is installed, remove it first with `pi remove npm:pi
   "enableSubagentAutocomplete": true,      // @ subagent completion and delegation hints
   "enableContextCommand": true,            // /context usage check
   "enableAgentSummary": true,              // per-turn tool summary
-  "enableWorkingMessage": true,            // Working... bottom token/elapsed
+  "enableWorkingMessage": true,            // Whole-second timing and run output below the editor
   "enableAliases": true                    // /clear, /exit aliases
 }
 ```

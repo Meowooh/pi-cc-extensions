@@ -1,9 +1,9 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { formatDuration } from "../../utils/format.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
-/** Elapsed time is only shown once the turn has run this long. */
-const SHOW_TIMER_AFTER_MS = 3_000;
+const WIDGET_KEY = "ccstyle-run-status";
 
 function formatCount(value: number): string {
 	return new Intl.NumberFormat("en-US").format(value);
@@ -12,6 +12,7 @@ function formatCount(value: number): string {
 type ContentBlock = {
 	type?: unknown;
 	text?: unknown;
+	thinking?: unknown;
 	thinkingSignature?: { body?: unknown };
 };
 
@@ -29,8 +30,9 @@ function textBlockLengths(message: StreamMessage): number[] {
 		const block = content[index] as ContentBlock;
 		if (block?.type === "text" && typeof block.text === "string") {
 			lengths[index] = block.text.length;
-		} else if (block?.type === "thinking" && block.thinkingSignature?.body) {
-			lengths[index] = (block.thinkingSignature.body as string).length;
+		} else if (block?.type === "thinking") {
+			const text = block.thinking ?? block.thinkingSignature?.body;
+			if (typeof text === "string") lengths[index] = text.length;
 		}
 	}
 	return lengths;
@@ -41,27 +43,32 @@ function outputUsage(message: StreamMessage): number {
 	return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
 }
 
-type WorkingUi = {
-	setWorkingMessage(message?: string): void;
+type RunSummary = {
+	duration: string;
+	tokens: number;
+	complete: boolean;
 };
 
 /**
- * Extend Pi's footer working row while preserving its spinner:
- * `⠋ Working (↓ 1,234 tokens · 12s)`
+ * Keep Pi's native spinner and plain `Working` label. Render run timing and
+ * output in a separate line below the editor, inspired by pi-open-tui's footer.
  *
- * Live tokens use the same chars/4 estimate as pi-claude-code-ui, then switch to
- * provider `usage.output` whenever the stream exposes an actual count.
+ * Count the whole agent run, including tool calls and subsequent turns. Live
+ * tokens use chars/4 until the provider supplies usage.output for that turn.
  */
 export default function (pi: ExtensionAPI): void {
+	let runActive = false;
 	let turnActive = false;
-	let agentStartTime = 0;
-	let turnStartTime = 0;
+	let agentStartTime: number | undefined;
+	let completedOutputTokens = 0;
 	let responseLength = 0;
 	let responseTextBlockLengths: number[] = [];
 	let providerOutputTokens = 0;
 	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-	let lastMessage: string | null = null;
-	let activeCtx: { ui: WorkingUi | undefined; hasUI: boolean } | null = null;
+	let summary: RunSummary | undefined;
+	let requestRender: (() => void) | undefined;
+	let widgetInstalled = false;
+	let activeCtx: ExtensionContext | undefined;
 
 	function tokenCount(): number {
 		return providerOutputTokens || Math.max(0, Math.round(responseLength / 4));
@@ -84,46 +91,57 @@ export default function (pi: ExtensionAPI): void {
 		if (output > 0) providerOutputTokens = output;
 	}
 
-	function buildWorkingMessage(): string {
-		const elapsed = Date.now() - (agentStartTime || turnStartTime);
-		const tokens = tokenCount();
-		const parts: string[] = [];
-		if (tokens > 0) parts.push(`↓ ${formatCount(tokens)} tokens`);
-		if (elapsed >= SHOW_TIMER_AFTER_MS || tokens > 0) {
-			// formatDuration 低于 1 秒返回 ""，此处回退 "0s" 保持计时器连续跳动。
-			parts.push(formatDuration(elapsed) || "0s");
-		}
-		return parts.length ? `Working (${parts.join(" · ")})` : "Working";
+	function installBottomLine(): void {
+		if (!activeCtx || widgetInstalled) return;
+		activeCtx.ui.setWidget(
+			WIDGET_KEY,
+			(tui, theme) => {
+				requestRender = () => tui.requestRender();
+				return {
+					render(width: number): string[] {
+						if (!summary) return [];
+						const { duration, tokens, complete } = summary;
+						const parts = [
+							theme.fg(complete ? "success" : "muted", `${complete ? "✓" : "◷"} ${duration}`),
+						];
+						if (tokens > 0) parts.push(theme.fg("muted", `↓ ${formatCount(tokens)} tokens`));
+						return [truncateToWidth(parts.join(theme.fg("dim", " | ")), Math.max(0, width), "…")];
+					},
+					invalidate() {},
+					dispose() {
+						requestRender = undefined;
+						widgetInstalled = false;
+					},
+				};
+			},
+			{ placement: "belowEditor" },
+		);
+		widgetInstalled = true;
 	}
 
-	function restoreDefaultWorkingMessage(): void {
-		lastMessage = null;
-		if (!activeCtx?.hasUI) return;
-		try {
-			activeCtx.ui?.setWorkingMessage();
-		} catch {
-			// Noop when the TUI is unavailable.
-		}
-	}
-
-	function syncWorkingMessage(force = false): void {
-		if (!activeCtx?.hasUI) return;
-		const next = buildWorkingMessage();
-		if (!force && next === lastMessage) return;
-		lastMessage = next;
-		try {
-			activeCtx.ui?.setWorkingMessage(next);
-		} catch {
-			// Noop when the TUI is unavailable.
-		}
+	function syncBottomLine(): void {
+		if (agentStartTime === undefined) return;
+		const next: RunSummary = {
+			duration: formatDuration(Math.max(0, Date.now() - agentStartTime)) || "0s",
+			tokens: completedOutputTokens + tokenCount(),
+			complete: !runActive,
+		};
+		if (
+			next.duration === summary?.duration &&
+			next.tokens === summary.tokens &&
+			next.complete === summary.complete
+		)
+			return;
+		summary = next;
+		requestRender?.();
 	}
 
 	function scheduleRefreshTick(): void {
-		if (!turnActive || refreshTimer) return;
+		if (!runActive || refreshTimer) return;
 		refreshTimer = setTimeout(() => {
 			refreshTimer = null;
 			try {
-				syncWorkingMessage();
+				syncBottomLine();
 			} finally {
 				scheduleRefreshTick();
 			}
@@ -139,27 +157,50 @@ export default function (pi: ExtensionAPI): void {
 
 	function clearDisplay(): void {
 		stopRefreshLoop();
-		agentStartTime = 0;
-		turnStartTime = 0;
+		runActive = false;
+		turnActive = false;
+		agentStartTime = undefined;
+		completedOutputTokens = 0;
 		resetResponseTracking();
-		restoreDefaultWorkingMessage();
+		summary = undefined;
+		activeCtx?.ui.setWidget(WIDGET_KEY, undefined);
+		activeCtx?.ui.setWorkingMessage();
+		requestRender = undefined;
+		widgetInstalled = false;
+		activeCtx = undefined;
 	}
 
-	pi.on("before_agent_start", async () => {
-		if (!agentStartTime) agentStartTime = Date.now();
+	function startRun(ctx: ExtensionContext): void {
+		stopRefreshLoop();
+		activeCtx = ctx;
+		runActive = true;
+		agentStartTime = Date.now();
+		completedOutputTokens = 0;
+		resetResponseTracking();
+		ctx.ui.setWorkingMessage("Working");
+		installBottomLine();
+		syncBottomLine();
+		scheduleRefreshTick();
+	}
+
+	pi.on("session_start", () => clearDisplay());
+
+	pi.on("agent_start", (_event, ctx) => {
+		if (!ctx.hasUI || ctx.mode !== "tui") return;
+		startRun(ctx);
 	});
 
 	pi.on("turn_start", async (_event, ctx) => {
+		if (!ctx.hasUI || ctx.mode !== "tui") return;
+		if (!runActive) startRun(ctx);
 		turnActive = true;
 		activeCtx = ctx;
-		turnStartTime = Date.now();
-		if (!agentStartTime) agentStartTime = turnStartTime;
 		resetResponseTracking();
-		syncWorkingMessage(true);
-		scheduleRefreshTick();
+		syncBottomLine();
 	});
 
 	pi.on("message_update", async (event, ctx) => {
+		if (!runActive || !turnActive) return;
 		activeCtx = ctx;
 		const evt = event?.assistantMessageEvent;
 		if (!evt) return;
@@ -187,27 +228,35 @@ export default function (pi: ExtensionAPI): void {
 			updateProviderUsage(evt.partial);
 		}
 
-		syncWorkingMessage();
-		scheduleRefreshTick();
+		syncBottomLine();
 	});
 
-	pi.on("turn_end", async (_event, ctx) => {
+	pi.on("message_end", (event) => {
+		if (!runActive || !turnActive || event.message?.role !== "assistant") return;
+		resetResponseTracking(event.message);
+		syncBottomLine();
+	});
+
+	pi.on("turn_end", async (event, ctx) => {
+		if (!runActive || !turnActive) return;
 		turnActive = false;
 		activeCtx = ctx;
-		stopRefreshLoop();
+		if (event.message?.role === "assistant") resetResponseTracking(event.message);
+		completedOutputTokens += tokenCount();
 		resetResponseTracking();
-		// No completion message: return immediately to Pi's default idle state.
-		restoreDefaultWorkingMessage();
+		syncBottomLine();
 	});
 
 	pi.on("agent_end", async () => {
+		if (!runActive) return;
+		runActive = false;
 		turnActive = false;
-		clearDisplay();
+		stopRefreshLoop();
+		syncBottomLine();
+		activeCtx?.ui.setWorkingMessage();
+		// Keep the final duration visible below the editor until the next run.
+		agentStartTime = undefined;
 	});
 
-	pi.on("session_shutdown", async () => {
-		turnActive = false;
-		clearDisplay();
-		activeCtx = null;
-	});
+	pi.on("session_shutdown", () => clearDisplay());
 }
