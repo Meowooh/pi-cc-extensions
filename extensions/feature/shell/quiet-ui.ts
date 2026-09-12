@@ -1,82 +1,120 @@
-import { stripVTControlCharacters } from "node:util";
-import { FooterComponent, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { sliceByColumn, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { patchRegistry, QUIET_FOOTER_PATCH } from "../../utils/patch-keys.ts";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { loadFooterConfig } from "./open-tui-footer/config.ts";
+import { installFooter } from "./open-tui-footer/footer.ts";
+import { readGitStatus } from "./open-tui-footer/git.ts";
+import { readRuntimeInfo } from "./open-tui-footer/runtime.ts";
+import {
+	createInitialState,
+	getModelMeta,
+	getUsageTotals,
+	invalidateUsageCache,
+} from "./open-tui-footer/state.ts";
+import type { RunSummary } from "./working-message.ts";
 
-type Footer = InstanceType<typeof FooterComponent>;
-type FooterRender = (this: Footer, width: number) => string[];
-type FooterPatch = { dispose(): void };
-
-/**
- * Keep Pi's native accounting, context warnings, subscription labels and extension
- * statuses. Only reflow its two status columns. A wide measurement prevents Pi's
- * original layout from dropping the model before we can move it to the left.
- */
-function modelFirstFooter(lines: string[], width: number): string[] | undefined {
-	const status = lines[1];
-	if (!status) return undefined;
-	// Native FooterComponent separates usage and model with at least two spaces.
-	const plain = stripVTControlCharacters(status);
-	const gap = / {2,}/.exec(plain);
-	if (!gap) return undefined;
-	const statsWidth = visibleWidth(plain.slice(0, gap.index));
-	const modelStart = statsWidth + gap[0].length;
-	const stats = sliceByColumn(status, 0, statsWidth);
-	const model = sliceByColumn(status, modelStart, visibleWidth(status) - modelStart);
-	const modelWidth = visibleWidth(model);
-	const available = Math.max(0, width - 2);
-	const statsBudget = Math.min(
-		statsWidth,
-		available - Math.min(modelWidth, Math.floor(available / 2)),
-	);
-	const modelBudget = Math.max(0, available - statsBudget);
-	const left = truncateToWidth(model, modelBudget, "…");
-	// Context is at the end of the usage column: preserve it when space is tight.
-	const right =
-		statsWidth <= statsBudget
-			? stats
-			: statsBudget > 1
-				? `…${sliceByColumn(status, statsWidth - statsBudget + 1, statsBudget - 1, true)}`
-				: "";
-	const padding = " ".repeat(Math.max(0, width - visibleWidth(left) - visibleWidth(right)));
-	const result = lines.map((line) => truncateToWidth(line, width, "..."));
-	result[1] = width < 4 ? truncateToWidth(model, width, "") : left + padding + right;
-	return result;
-}
-
-export function installModelFirstFooter(): () => void {
-	patchRegistry.get<FooterPatch>(QUIET_FOOTER_PATCH)?.dispose();
-	const prototype = FooterComponent.prototype;
-	const original: FooterRender = prototype.render;
-	let active = true;
-	const installed: FooterRender = function (width) {
-		if (!active) return original.call(this, width);
-		const lines = original.call(this, Math.max(4_096, width));
-		return modelFirstFooter(lines, width) ?? original.call(this, width);
-	};
-	const patch: FooterPatch = {
-		dispose() {
-			active = false;
-			if (prototype.render === installed) prototype.render = original;
-			patchRegistry.dispose(QUIET_FOOTER_PATCH, patch);
-		},
-	};
-	prototype.render = installed;
-	patchRegistry.install(QUIET_FOOTER_PATCH, patch);
-	return () => patch.dispose();
-}
-
-export default function quietUi(pi: ExtensionAPI): void {
+export default function quietUi(pi: ExtensionAPI): (summary: RunSummary | undefined) => void {
+	let state = createInitialState();
+	let config = loadFooterConfig();
+	let activeCtx: ExtensionContext | undefined;
 	let disposeFooter: (() => void) | undefined;
+	let requestRender: (() => void) | undefined;
+	let generation = 0;
+	let projectRefresh: Promise<void> | undefined;
+	let refreshQueued = false;
+
+	function refreshProject(): void {
+		if (!activeCtx) return;
+		if (projectRefresh) {
+			refreshQueued = true;
+			return;
+		}
+		const current = generation;
+		const cwd = activeCtx.cwd;
+		const segments = config.footerSegments;
+		const task = Promise.all([
+			segments.gitBranch || segments.gitStatus
+				? readGitStatus(cwd, {
+						readCommit: true,
+						readTag: segments.gitCommit,
+						readCounts: segments.gitStatus,
+					})
+				: Promise.resolve(state.git),
+			segments.runtime ? readRuntimeInfo(cwd) : Promise.resolve(null),
+		])
+			.then(([git, runtime]) => {
+				if (current !== generation) return;
+				state.git = git;
+				state.runtime = runtime;
+				requestRender?.();
+			})
+			.finally(() => {
+				if (projectRefresh !== task) return;
+				projectRefresh = undefined;
+				if (refreshQueued) {
+					refreshQueued = false;
+					refreshProject();
+				}
+			});
+		projectRefresh = task;
+	}
+
+	function refreshUsage(): void {
+		invalidateUsageCache();
+		requestRender?.();
+	}
+
+	function dispose(): void {
+		generation++;
+		activeCtx = undefined;
+		projectRefresh = undefined;
+		refreshQueued = false;
+		disposeFooter?.();
+		disposeFooter = undefined;
+		requestRender = undefined;
+	}
+
 	pi.on("session_start", (_event, ctx) => {
-		if (ctx.mode !== "tui") return;
+		dispose();
+		if (!ctx.hasUI || ctx.mode !== "tui") return;
+		activeCtx = ctx;
+		state = createInitialState();
+		config = loadFooterConfig();
+		invalidateUsageCache();
 		ctx.ui.setWorkingIndicator();
 		ctx.ui.setWorkingMessage("Working");
 		ctx.ui.setHiddenThinkingLabel("Thinking");
-		disposeFooter = installModelFirstFooter();
+		disposeFooter = installFooter(
+			ctx,
+			() => state,
+			() => config,
+			() => getModelMeta(ctx, () => pi.getThinkingLevel()),
+			{
+				setRequestRender: (render) => {
+					requestRender = render;
+				},
+				scheduleGitRefresh: refreshProject,
+			},
+		);
+		refreshProject();
 	});
-	pi.on("session_shutdown", () => {
-		disposeFooter?.();
-		disposeFooter = undefined;
+	pi.on("session_shutdown", dispose);
+	pi.on("model_select", refreshUsage);
+	pi.on("thinking_level_select", refreshUsage);
+	pi.on("message_end", refreshUsage);
+	pi.on("turn_end", refreshUsage);
+	pi.on("agent_end", refreshUsage);
+	pi.on("session_compact", refreshUsage);
+	pi.on("session_tree", refreshUsage);
+	pi.on("session_info_changed", refreshUsage);
+	pi.on("tool_execution_end", () => {
+		refreshUsage();
+		refreshProject();
 	});
+
+	return (summary) => {
+		if (summary && !summary.complete && (!state.runSummary || state.runSummary.complete)) {
+			state.outputBaseline = activeCtx ? getUsageTotals(activeCtx).output : 0;
+		}
+		state.runSummary = summary;
+		requestRender?.();
+	};
 }

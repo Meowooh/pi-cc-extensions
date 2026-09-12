@@ -1,4 +1,4 @@
-> **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光。Working 只显示转圈和文字，整秒耗时与输出量放在输入框下方，模型放左侧、上下文放右侧。详见 [定制说明](LOCAL-CHANGES.md)。
+> **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光。Working 只显示转圈和文字；输入框下方使用 pi-open-tui 的两行底栏，整秒耗时并入目录/Git 行，模型在左、上下文和用量在右。详见 [定制说明](LOCAL-CHANGES.md)。
 
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%">
@@ -80,7 +80,7 @@ pi install git:github.com/Meowooh/pi-cc-extensions@quiet-ui
   "enableSubagentAutocomplete": true,      // @ subagent 补全与委派提示
   "enableContextCommand": true,            // /context 上下文检查
   "enableAgentSummary": true,              // 每回合工具摘要
-  "enableWorkingMessage": true,            // 输入框下方的整秒耗时和本次输出量
+  "enableWorkingMessage": true,            // 两行底栏中的整秒耗时和流式输出统计
   "enableAliases": true                    // /clear、/exit 别名
 }
 ```

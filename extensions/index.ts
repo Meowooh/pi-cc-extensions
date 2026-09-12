@@ -24,8 +24,8 @@ export default function (pi: ExtensionAPI): void {
 	if (config.enableAliases) piAliases(pi);
 	installFlushDockedBash();
 	piStartupHeader(pi);
-	quietUi(pi);
-	if (config.enableWorkingMessage) workingMessage(pi);
+	const setRunSummary = quietUi(pi);
+	if (config.enableWorkingMessage) workingMessage(pi, setRunSummary);
 
 	// render stack：thinking controller 直接交给 style 作 query
 	markdownEnhance(pi);

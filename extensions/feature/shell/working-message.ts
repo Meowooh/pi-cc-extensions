@@ -1,14 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { formatDuration } from "../../utils/format.ts";
 
 const REFRESH_INTERVAL_MS = 1_000;
-const WIDGET_KEY = "ccstyle-run-status";
-
-function formatCount(value: number): string {
-	return new Intl.NumberFormat("en-US").format(value);
-}
-
 type ContentBlock = {
 	type?: unknown;
 	text?: unknown;
@@ -43,20 +36,23 @@ function outputUsage(message: StreamMessage): number {
 	return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
 }
 
-type RunSummary = {
+export type RunSummary = {
 	duration: string;
 	tokens: number;
 	complete: boolean;
 };
 
 /**
- * Keep Pi's native spinner and plain `Working` label. Render run timing and
- * output in a separate line below the editor, inspired by pi-open-tui's footer.
+ * Keep Pi's native spinner and plain `Working` label. Publish run timing and
+ * output to the shared two-row footer.
  *
  * Count the whole agent run, including tool calls and subsequent turns. Live
  * tokens use chars/4 until the provider supplies usage.output for that turn.
  */
-export default function (pi: ExtensionAPI): void {
+export default function (
+	pi: ExtensionAPI,
+	setRunSummary: (summary: RunSummary | undefined) => void,
+): void {
 	let runActive = false;
 	let turnActive = false;
 	let agentStartTime: number | undefined;
@@ -66,8 +62,6 @@ export default function (pi: ExtensionAPI): void {
 	let providerOutputTokens = 0;
 	let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	let summary: RunSummary | undefined;
-	let requestRender: (() => void) | undefined;
-	let widgetInstalled = false;
 	let activeCtx: ExtensionContext | undefined;
 
 	function tokenCount(): number {
@@ -91,34 +85,6 @@ export default function (pi: ExtensionAPI): void {
 		if (output > 0) providerOutputTokens = output;
 	}
 
-	function installBottomLine(): void {
-		if (!activeCtx || widgetInstalled) return;
-		activeCtx.ui.setWidget(
-			WIDGET_KEY,
-			(tui, theme) => {
-				requestRender = () => tui.requestRender();
-				return {
-					render(width: number): string[] {
-						if (!summary) return [];
-						const { duration, tokens, complete } = summary;
-						const parts = [
-							theme.fg(complete ? "success" : "muted", `${complete ? "✓" : "◷"} ${duration}`),
-						];
-						if (tokens > 0) parts.push(theme.fg("muted", `↓ ${formatCount(tokens)} tokens`));
-						return [truncateToWidth(parts.join(theme.fg("dim", " | ")), Math.max(0, width), "…")];
-					},
-					invalidate() {},
-					dispose() {
-						requestRender = undefined;
-						widgetInstalled = false;
-					},
-				};
-			},
-			{ placement: "belowEditor" },
-		);
-		widgetInstalled = true;
-	}
-
 	function syncBottomLine(): void {
 		if (agentStartTime === undefined) return;
 		const next: RunSummary = {
@@ -133,7 +99,7 @@ export default function (pi: ExtensionAPI): void {
 		)
 			return;
 		summary = next;
-		requestRender?.();
+		setRunSummary(summary);
 	}
 
 	function scheduleRefreshTick(): void {
@@ -163,10 +129,8 @@ export default function (pi: ExtensionAPI): void {
 		completedOutputTokens = 0;
 		resetResponseTracking();
 		summary = undefined;
-		activeCtx?.ui.setWidget(WIDGET_KEY, undefined);
+		setRunSummary(undefined);
 		activeCtx?.ui.setWorkingMessage();
-		requestRender = undefined;
-		widgetInstalled = false;
 		activeCtx = undefined;
 	}
 
@@ -178,7 +142,6 @@ export default function (pi: ExtensionAPI): void {
 		completedOutputTokens = 0;
 		resetResponseTracking();
 		ctx.ui.setWorkingMessage("Working");
-		installBottomLine();
 		syncBottomLine();
 		scheduleRefreshTick();
 	}
@@ -254,7 +217,7 @@ export default function (pi: ExtensionAPI): void {
 		stopRefreshLoop();
 		syncBottomLine();
 		activeCtx?.ui.setWorkingMessage();
-		// Keep the final duration visible below the editor until the next run.
+		// Keep the final duration visible in the footer until the next run.
 		agentStartTime = undefined;
 	});
 
