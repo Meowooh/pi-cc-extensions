@@ -7,3 +7,5 @@ The two-row footer layout, glyphs, colors, usage formatting and runtime detectio
 Integration changes connect the existing whole-second run tracker, retain unknown-context and subscription information, isolate session caches and disposal, and read existing icon/footer preferences without rewriting them.
 
 The cost glyph already denotes USD in both ASCII and Nerd Font modes, so the amount does not add a second dollar prefix.
+
+Upstream uses the active Pi theme. This fork selects Pi's built-in `dark` palette for the footer so it keeps Open TUI's default dark appearance under conversation themes such as `cc-dark`. If that palette is unavailable, it falls back to the active theme.

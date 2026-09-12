@@ -65,9 +65,14 @@ function install(iconMode: "ascii" | "nerd" = "ascii") {
 			getSessionName: () => undefined,
 		},
 		ui: {
+			getTheme(name: string) {
+				assert.equal(name, "dark");
+				return theme;
+			},
 			setFooter(factory: any) {
 				component?.dispose();
-				component = factory?.({ requestRender: () => renders++ }, theme, {
+				const activeTheme = { fg: (_color: string, text: string) => `\x1b[35m${text}\x1b[0m` };
+				component = factory?.({ requestRender: () => renders++ }, activeTheme, {
 					onBranchChange: (fn: () => void) => {
 						branchChanged = fn;
 						return () => {

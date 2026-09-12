@@ -32,6 +32,7 @@
 		],
 		"themes": [
 			"./themes/cc-dark.json",
+			"./themes/cc-codex.json",
 			"./themes/cc-light.json"
 		],
 		"image": "https://raw.githubusercontent.com/minuque/pi-cc-extensions/main/assets/readme/preview.png",

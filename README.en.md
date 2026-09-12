@@ -1,4 +1,6 @@
-> **Meowooh custom fork**: keeps the spinners and removes Working / Thinking ellipses and text shimmer. Working stays a plain label. The editor uses pi-open-tui's two-row footer: directory/Git and whole-second timing opposite context, then model and effort opposite usage and cost. See [customization notes](LOCAL-CHANGES.md).
+> **Meowooh custom fork**: keeps the spinners and removes Working / Thinking ellipses and text shimmer. Working stays a plain label. The editor uses pi-open-tui's two-row footer with Pi's default dark palette: directory/Git and whole-second timing opposite context, then model and effort opposite usage and cost. See [customization notes](LOCAL-CHANGES.md).
+
+Select `cc-codex` through `/theme` for a Codex CLI-inspired neutral palette and dark gray input surface.
 
 <p align="center">
   <img src="./assets/readme/hero.en.svg" width="100%" alt="pi-cc-extensions: a productivity extension suite for Pi">
@@ -42,7 +44,7 @@ If the upstream npm package is installed, remove it first with `pi remove npm:pi
 | Settings panel              | `Style / Diff / Thinking / UI / Feature` tabs                                             | `/ccstyle`                                      |
 | Context inspection          | Usage breakdown and previews for the system prompt, memory, skills, tools definition, and messages | `/context`                                      |
 | Session/Subagent references | Search and inject effective context from previous Sessions or existing SubAgents          | `@`                                             |
-| Theme                       | Bundled CC Dark and CC Light themes                                                       | `/theme`                                        |
+| Theme                       | Bundled CC Codex, CC Dark and CC Light themes                                              | `/theme`                                        |
 
 ## Configuration
 

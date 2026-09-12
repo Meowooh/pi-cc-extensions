@@ -221,7 +221,9 @@ export function installFooter(
 	hooks: FooterHooks,
 ): () => void {
 	let ownsFooter = false;
-	ctx.ui.setFooter((tui, theme, footerData) => {
+	ctx.ui.setFooter((tui, activeTheme, footerData) => {
+		// Use Open TUI's default Pi palette even when the conversation uses cc-dark.
+		const theme = ctx.ui.getTheme("dark") ?? activeTheme;
 		ownsFooter = true;
 		hooks.setRequestRender(() => tui.requestRender());
 		const unsubBranch = footerData.onBranchChange(() => {

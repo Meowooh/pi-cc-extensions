@@ -7,6 +7,7 @@ import { installFlushDockedBash } from "./feature/shell/flush-docked-bash.ts";
 import piStartupHeader from "./feature/shell/startup-header.ts";
 import workingMessage from "./feature/shell/working-message.ts";
 import quietUi from "./feature/shell/quiet-ui.ts";
+import codexEditor from "./feature/shell/codex-editor.ts";
 
 // feature
 import agentAutocomplete from "./feature/reference/subagent.ts";
@@ -25,6 +26,7 @@ export default function (pi: ExtensionAPI): void {
 	installFlushDockedBash();
 	piStartupHeader(pi);
 	const setRunSummary = quietUi(pi);
+	codexEditor(pi);
 	if (config.enableWorkingMessage) workingMessage(pi, setRunSummary);
 
 	// render stack：thinking controller 直接交给 style 作 query
