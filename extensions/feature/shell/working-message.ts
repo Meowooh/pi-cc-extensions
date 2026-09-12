@@ -46,8 +46,8 @@ type WorkingUi = {
 };
 
 /**
- * Extend Pi's footer working row while preserving its spinner and "Working...":
- * `⠋ Working... (↓ 1,234 tokens · 12s)`
+ * Extend Pi's footer working row while preserving its spinner:
+ * `⠋ Working (↓ 1,234 tokens · 12s)`
  *
  * Live tokens use the same chars/4 estimate as pi-claude-code-ui, then switch to
  * provider `usage.output` whenever the stream exposes an actual count.
@@ -93,7 +93,7 @@ export default function (pi: ExtensionAPI): void {
 			// formatDuration 低于 1 秒返回 ""，此处回退 "0s" 保持计时器连续跳动。
 			parts.push(formatDuration(elapsed) || "0s");
 		}
-		return parts.length ? `Working... (${parts.join(" · ")})` : "";
+		return parts.length ? `Working (${parts.join(" · ")})` : "Working";
 	}
 
 	function restoreDefaultWorkingMessage(): void {
@@ -109,10 +109,6 @@ export default function (pi: ExtensionAPI): void {
 	function syncWorkingMessage(force = false): void {
 		if (!activeCtx?.hasUI) return;
 		const next = buildWorkingMessage();
-		if (!next) {
-			if (force) restoreDefaultWorkingMessage();
-			return;
-		}
 		if (!force && next === lastMessage) return;
 		lastMessage = next;
 		try {

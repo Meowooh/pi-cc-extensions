@@ -127,13 +127,13 @@ test("buildMessageSummary: duration first, read dedup by path, counts, first-see
 			{ type: "toolCall", id: "g1", name: "grep", arguments: { pattern: "x" } },
 		],
 	};
-	assert.equal(buildMessageSummary(message, query), "Ran for 9s, read×2, bash×1, grep×1");
+	assert.equal(buildMessageSummary(message, query), "Ran for 8s, read×2, bash×1, grep×1");
 	assert.equal(
 		buildMessageSummary(message, {
 			getMessageThinkingDurationMs: () => 8500,
 			isMessageThinkingActive: () => true,
 		}),
-		"Running... · 9s, read×2, bash×1, grep×1",
+		"Running... · 8s, read×2, bash×1, grep×1",
 	);
 	// 显式挂钟覆盖 thinking query
 	assert.equal(buildMessageSummary(message, query, 15_000), "Ran for 15s, read×2, bash×1, grep×1");
@@ -266,7 +266,7 @@ test("compact collapses tool-calling assistant to one line; native render outsid
 		assistant.updateContent(msg);
 		const collapsed = renderText(assistant);
 		assert.equal(collapsed.length, 1, "tool-calling assistant collapses to a single line");
-		assert.match(collapsed[0], /^Running\.\.\.(?: · \d+ms)?, bash×1/);
+		assert.match(collapsed[0], /^[\u2800-\u28ff] Running\.\.\.(?: · \d+s)?, bash×1/);
 		assert.match(collapsed[0], /click to show more/);
 		const narrow = assistant.render(30);
 		assert.equal(narrow[0], "", "compact summary keeps one leading blank row");
@@ -364,10 +364,10 @@ test("consecutive tool-call messages accumulate into one round until the next vi
 		};
 		const assistant2 = new AssistantMessageComponent(message2Thinking as any, true) as any;
 		assistant2.updateContent(message2Thinking as any);
-		assert.match(renderText(assistant1).join("\n"), /^Running\.\.\. · 900ms, bash×1/);
+		assert.match(renderText(assistant1).join("\n"), /^[\u2800-\u28ff] Running\.\.\. · 0s, bash×1/);
 		assert.doesNotMatch(renderText(assistant1).join("\n"), /Ran for/);
 		animationFrame = 1;
-		assert.match(renderText(assistant1).join("\n"), /^Running\.\.\. · 900ms, bash×1/);
+		assert.match(renderText(assistant1).join("\n"), /^[\u2800-\u28ff] Running\.\.\. · 0s, bash×1/);
 
 		activeTimestamp = undefined;
 		assistant2.updateContent(message2);
@@ -378,7 +378,7 @@ test("consecutive tool-call messages accumulate into one round until the next vi
 		assert.deepEqual(renderText(assistant3), []);
 		assert.match(
 			renderText(assistant1).join("\n"),
-			/^Running\.\.\. · 2s, bash×2, fffind×1, read×1/,
+			/^[\u2800-\u28ff] Running\.\.\. · 1s, bash×2, fffind×1, read×1/,
 		);
 
 		const bash = tool("bash", "b1", { command: "one" });
@@ -432,11 +432,11 @@ test("consecutive tool-call messages accumulate into one round until the next vi
 		};
 		const final = new AssistantMessageComponent(finalThinking as any, true) as any;
 		final.updateContent(finalThinking as any);
-		assert.match(renderText(assistant1).join("\n"), /^Running\.\.\. · 5s, bash×2/);
+		assert.match(renderText(assistant1).join("\n"), /^[\u2800-\u28ff] Running\.\.\. · 4s, bash×2/);
 
 		activeTimestamp = undefined;
 		final.updateContent(finalMessage);
-		assert.match(renderText(assistant1).join("\n"), /^Ran for 5s, bash×2/);
+		assert.match(renderText(assistant1).join("\n"), /^Ran for 4s, bash×2/);
 		assert.match(renderText(final).join("\n"), /final answer/);
 		assert.doesNotMatch(renderText(final).join("\n"), /Thought|final thought/);
 
@@ -452,9 +452,9 @@ test("consecutive tool-call messages accumulate into one round until the next vi
 		next.updateContent(nextMessage);
 		const nextLines = renderText(next).join("\n");
 		assert.match(nextLines, /next round/);
-		assert.match(nextLines, /Running\.\.\.(?: · \d+ms)?, grep×1/);
+		assert.match(nextLines, /Running\.\.\.(?: · \d+s)?, grep×1/);
 		assert.doesNotMatch(nextLines, /bash×2/);
-		assert.match(renderText(assistant1).join("\n"), /^Ran for 5s, bash×2/);
+		assert.match(renderText(assistant1).join("\n"), /^Ran for 4s, bash×2/);
 	} finally {
 		setMessageDisplayTheme(previousTheme);
 		config.mode = previousMode;

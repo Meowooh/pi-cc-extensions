@@ -716,7 +716,7 @@ function compactThinking(pi: ExtensionAPI) {
 			const active = isActiveRun(message, runStartIndex, runEndIndex);
 			// OpenAI can spend several seconds reasoning before it emits the first
 			// summary token. Keep an empty active block visible as animated
-			// "Thinking..." during that otherwise silent interval.
+			// "Thinking" during that otherwise silent interval.
 			if (thinkingBlocks.length === 0 && !active) continue;
 			if (hasVisibleContentBefore) {
 				self.contentContainer.addChild(new Spacer(1));
@@ -735,7 +735,10 @@ function compactThinking(pi: ExtensionAPI) {
 					animatedText(latestSummary.title, summaryTitleStyle, true) +
 					(durationText ? thinkingStyle(` · ${durationText}`) : "");
 			} else if (active) {
-				const label = self.hiddenThinkingLabel || "Thinking...";
+				const label =
+					!self.hiddenThinkingLabel || /^Thinking(?:\.{3}|…)?$/.test(self.hiddenThinkingLabel)
+						? "Thinking"
+						: self.hiddenThinkingLabel;
 				heading =
 					animatedText(label, thinkingStyle, true) +
 					(durationText ? thinkingStyle(` · ${durationText}`) : "");

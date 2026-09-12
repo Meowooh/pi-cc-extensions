@@ -43,6 +43,7 @@ export const TOOL_MOUSE_OWNER_KEY = Symbol.for("pi.ccstyle.tool-mouse-owner");
 export const TOOL_MOUSE_TUI_SLOT = Symbol.for("pi.ccstyle.tool-mouse-tui");
 export const SCROLL_BUTTON_STATE_SLOT = Symbol.for("pi.ccstyle.scroll-button-state");
 export const FLUSH_DOCKED_BASH_PATCH = Symbol.for("pi.ccstyle.flush-docked-bash-patch");
+export const QUIET_FOOTER_PATCH = Symbol.for("pi.ccstyle.quiet-footer-patch");
 export const TOOL_HOVER_STATE_KEY = Symbol.for("pi.ccstyle.tool-hover-state");
 
 // ── rich diff 组件标记 ──

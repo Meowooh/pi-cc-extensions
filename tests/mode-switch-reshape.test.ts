@@ -205,7 +205,7 @@ test("round accumulation survives on → compact switch", () => {
 		const root = { children: [a1, a2, a3] };
 
 		switchMode("compact", hooks, root);
-		assert.match(renderText(a1).join("\n"), /2s, bash×2, fffind×1, read×1/);
+		assert.match(renderText(a1).join("\n"), /1s, bash×2, fffind×1, read×1/);
 		assert.deepEqual(renderText(a2), []);
 		assert.deepEqual(renderText(a3), []);
 	} finally {

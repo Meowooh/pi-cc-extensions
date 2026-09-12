@@ -1,3 +1,5 @@
+> **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光，计时按整秒显示，模型放左侧、上下文放右侧。详见 [定制说明](LOCAL-CHANGES.md)。
+
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%">
 </p>
@@ -18,20 +20,17 @@
 
 ---
 
-## 界面预览
+## 上游界面预览
 
 https://github.com/user-attachments/assets/6c858000-fdad-43f9-957f-4d0278648498
 
 ## 快速开始
 
 ```bash
-pi install npm:pi-cc-extensions
-
-# GitHub
-pi install git:github.com/minuque/pi-cc-extensions
+pi install git:github.com/Meowooh/pi-cc-extensions@quiet-ui
 ```
 
-安装后执行 `/reload`
+已安装上游 npm 版本时，先执行 `pi remove npm:pi-cc-extensions`。安装后执行 `/reload`。
 
 ## 功能
 
@@ -65,7 +64,7 @@ pi install git:github.com/minuque/pi-cc-extensions
   // thinking
   "useSummaryTitlesAsThinkingTitle": true, // 用最新摘要作思考标题
   "previewLines": 3,                       // 预览行数，0 隐藏
-  "animationIntervalMs": 90,               // 标题动画间隔（毫秒）
+  "animationIntervalMs": 90,               // 转圈动画间隔（毫秒）；计时仍按整秒显示
   "dimThinkingText": false,                // thinking 正文用 dim 色
 
   // ui

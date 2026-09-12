@@ -23,8 +23,8 @@ test("working message appends token count and elapsed time while streaming", asy
 	const { events, messages, ctx } = install();
 
 	await events.get("turn_start")?.({}, ctx);
-	// No tokens yet and under the timer threshold: keep Pi's default "Working...".
-	assert.equal(messages.at(-1), undefined);
+	// No tokens yet and under the timer threshold: show the plain label.
+	assert.equal(messages.at(-1), "Working");
 
 	const delta = "This is a streaming response body long enough to count some tokens.";
 	await events.get("message_update")?.(
@@ -36,7 +36,7 @@ test("working message appends token count and elapsed time while streaming", asy
 		ctx,
 	);
 	const working = messages.at(-1);
-	assert.match(working ?? "", /^Working\.\.\. \(↓ \d+ tokens · \d+s\)$/);
+	assert.match(working ?? "", /^Working \(↓ \d+ tokens · \d+s\)$/);
 
 	await events.get("turn_end")?.({}, ctx);
 	assert.equal(messages.at(-1), undefined, "turn end restores default without a completion line");
@@ -120,5 +120,5 @@ test("token count accumulates across deltas and resets on the next turn", async 
 	// A new turn resets both estimated and provider counts.
 	await events.get("turn_end")?.({}, ctx);
 	await events.get("turn_start")?.({}, ctx);
-	assert.equal(messages.at(-1), undefined);
+	assert.equal(messages.at(-1), "Working");
 });

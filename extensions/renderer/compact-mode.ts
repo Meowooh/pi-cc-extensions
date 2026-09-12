@@ -22,7 +22,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth, Box, Spacer } from "@earendil-works/pi-tui";
 import { config, getToolDisplayConfig } from "../config/config.ts";
-import { toolLoadingIcon } from "../utils/tool-loading-icon.ts";
+import { toolLoadingIcon, TOOL_LOADING_INTERVAL_MS } from "../utils/tool-loading-icon.ts";
 import { sanitizeToolResultText } from "../utils/tool-result-sanitize.ts";
 import { refreshTranscriptComponent } from "./transcript-refresh.ts";
 import { getMessageDisplayTheme } from "./tool/message-display.ts";
@@ -75,48 +75,20 @@ export function styleCompactThinkingText(
 	return typeof theme.italic === "function" ? theme.italic(weighted) : weighted;
 }
 
-/** 与 compact-thinking 主渲染器共用的活动思考扫光动画。 */
+/** Animate only the leading spinner; thinking text keeps a steady color and weight. */
 export function animateCompactThinkingText(
 	text: string,
 	theme: CompactThinkingTheme | undefined,
 	animationFrame: number,
 	boldBase = false,
 ): string {
-	if (!theme) return text;
-	const characters = Array.from(text);
-	if (characters.length === 0) return "";
-	const highlightWidth = Math.max(1, Math.min(5, Math.ceil(characters.length * 0.28)));
-	const start = (animationFrame % (characters.length + highlightWidth)) - highlightWidth;
-	const end = start + highlightWidth;
-	const before = characters.slice(0, Math.max(0, start)).join("");
-	const highlighted = characters
-		.slice(Math.max(0, start), Math.min(characters.length, end))
-		.join("");
-	const after = characters.slice(Math.max(0, end)).join("");
-	const highlightedColored =
-		highlighted && typeof theme.fg === "function" ? theme.fg("text", highlighted) : highlighted;
-	const highlightedWeighted =
-		highlightedColored && typeof theme.bold === "function"
-			? theme.bold(highlightedColored)
-			: highlightedColored;
-	const highlightedText =
-		highlightedWeighted && typeof theme.italic === "function"
-			? theme.italic(highlightedWeighted)
-			: highlightedWeighted;
-
-	return (
-		styleCompactThinkingText(before, theme, boldBase) +
-		highlightedText +
-		styleCompactThinkingText(after, theme, boldBase)
-	);
+	if (!text) return "";
+	const spinner = toolLoadingIcon(animationFrame * TOOL_LOADING_INTERVAL_MS);
+	return styleCompactThinkingText(`${spinner} ${text}`, theme, boldBase);
 }
 
 function formatThoughtDuration(durationMs: number) {
-	if (durationMs < 1_000) {
-		return `${Math.max(1, Math.round(durationMs))}ms`;
-	}
-
-	const totalSeconds = Math.max(1, Math.round(durationMs / 1_000));
+	const totalSeconds = Math.max(0, Math.floor(durationMs / 1_000));
 	const minutes = Math.floor(totalSeconds / 60);
 	const seconds = totalSeconds % 60;
 	if (minutes === 0) return `${seconds}s`;

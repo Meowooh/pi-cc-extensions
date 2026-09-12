@@ -377,8 +377,8 @@ export async function showCcstylePanel(
 		};
 		const thinkingAnimationSetting = {
 			id: "animationIntervalMs",
-			label: "Animation interval ms",
-			description: "Thinking title animation interval for the next thinking run.",
+			label: "Spinner interval ms",
+			description: "Spinner frame interval. Text stays steady and elapsed time uses whole seconds.",
 			currentValue: String(config.animationIntervalMs),
 			values: [...THINKING_ANIMATION_INTERVAL_VALUES],
 			submenu: (_current: string, closeSubmenu: (selected?: string) => void) =>

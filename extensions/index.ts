@@ -6,6 +6,7 @@ import piAliases from "./feature/shell/aliases.ts";
 import { installFlushDockedBash } from "./feature/shell/flush-docked-bash.ts";
 import piStartupHeader from "./feature/shell/startup-header.ts";
 import workingMessage from "./feature/shell/working-message.ts";
+import quietUi from "./feature/shell/quiet-ui.ts";
 
 // feature
 import agentAutocomplete from "./feature/reference/subagent.ts";
@@ -23,6 +24,7 @@ export default function (pi: ExtensionAPI): void {
 	if (config.enableAliases) piAliases(pi);
 	installFlushDockedBash();
 	piStartupHeader(pi);
+	quietUi(pi);
 	if (config.enableWorkingMessage) workingMessage(pi);
 
 	// render stack：thinking controller 直接交给 style 作 query

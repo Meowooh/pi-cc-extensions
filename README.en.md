@@ -1,3 +1,5 @@
+> **Meowooh custom fork**: keeps the spinners, removes Working / Thinking ellipses and text shimmer, uses whole-second timing, and puts the model on the left with context usage on the right. See [customization notes](LOCAL-CHANGES.md).
+
 <p align="center">
   <img src="./assets/readme/hero.en.svg" width="100%" alt="pi-cc-extensions: a productivity extension suite for Pi">
 </p>
@@ -18,20 +20,17 @@
 
 ---
 
-## Preview
+## Upstream preview
 
 https://github.com/user-attachments/assets/6c858000-fdad-43f9-957f-4d0278648498
 
 ## Quick start
 
 ```bash
-pi install npm:pi-cc-extensions
-
-# GitHub
-pi install git:github.com/minuque/pi-cc-extensions
+pi install git:github.com/Meowooh/pi-cc-extensions@quiet-ui
 ```
 
-Run `/reload` after installation.
+If the upstream npm package is installed, remove it first with `pi remove npm:pi-cc-extensions`. Run `/reload` after installation.
 
 ## Features
 
@@ -65,7 +64,7 @@ Run `/reload` after installation.
   // thinking
   "useSummaryTitlesAsThinkingTitle": true, // use latest summary as thinking title
   "previewLines": 3,                       // preview lines; 0 hides
-  "animationIntervalMs": 90,               // title animation interval (ms)
+  "animationIntervalMs": 90,               // spinner frame interval (ms); elapsed time uses whole seconds
   "dimThinkingText": false,                // dim thinking body text
 
   // ui

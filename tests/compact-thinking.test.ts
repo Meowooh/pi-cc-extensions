@@ -63,17 +63,18 @@ test("collapsed thinking previews memoize complete output until invalidated", ()
 	}
 });
 
-test("compact summary reuses compact-thinking's sweep animation", () => {
+test("compact summary animates the spinner while keeping thinking text steady", () => {
 	const theme = {
 		fg: (color: string, text: string) => `<${color}>${text}</${color}>`,
 		italic: (text: string) => `<i>${text}</i>`,
 		bold: (text: string) => `<b>${text}</b>`,
 	} as any;
-	const first = animateCompactThinkingText("Thinking...", theme, 0);
-	const second = animateCompactThinkingText("Thinking...", theme, 1);
+	const first = animateCompactThinkingText("Thinking", theme, 0);
+	const second = animateCompactThinkingText("Thinking", theme, 1);
 	assert.notEqual(first, second);
-	assert.equal(first.replace(/<[^>]+>/g, ""), "Thinking...");
-	assert.equal(second.replace(/<[^>]+>/g, ""), "Thinking...");
+	assert.equal(first.replace("⠋", "⠙"), second);
+	assert.equal(first.replace(/<[^>]+>/g, ""), "⠋ Thinking");
+	assert.equal(second.replace(/<[^>]+>/g, ""), "⠙ Thinking");
 });
 
 function runtime() {
