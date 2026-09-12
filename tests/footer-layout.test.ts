@@ -10,9 +10,9 @@ import {
 	getUsageTotals,
 } from "../extensions/feature/shell/open-tui-footer/state.ts";
 
-function install() {
+function install(iconMode: "ascii" | "nerd" = "ascii") {
 	const config = loadFooterConfig();
-	config.icons.mode = "ascii";
+	config.icons.mode = iconMode;
 	const state = createInitialState();
 	state.git.branch = "quiet-ui";
 	state.git.modified = 2;
@@ -122,7 +122,7 @@ test("Open TUI footer places context above usage with model and timing on the le
 	);
 	assert.match(
 		lines[1],
-		/^M · Openai-codex · gpt-6-astra · ~ max +↑ 25k \(U 5\.0k \+ R 20k\) \| ↓ 320 \| c 80\.0% \| \$ \$0\.120 \(sub\)$/,
+		/^M · Openai-codex · gpt-6-astra · ~ max +↑ 25k \(U 5\.0k \+ R 20k\) \| ↓ 320 \| c 80\.0% \| \$ 0\.120 \(sub\)$/,
 	);
 	app.state.runSummary!.complete = true;
 	assert.match(plain(app.render()[0]), /\+ done 12s/);
@@ -130,6 +130,10 @@ test("Open TUI footer places context above usage with model and timing on the le
 	app.state.runSummary = { duration: "1s", tokens: 100, complete: false };
 	assert.match(plain(app.render()[1]), /↓ 420/);
 	app.dispose();
+	const nerd = install("nerd");
+	assert.match(plain(nerd.render()[1]), / 0\.120 \(sub\)$/);
+	assert.doesNotMatch(plain(nerd.render()[1]), /\s*\$/);
+	nerd.dispose();
 });
 
 test("footer preserves unknown context, warning colors, CJK widths and extension statuses", () => {
