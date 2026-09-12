@@ -1,6 +1,6 @@
 > **Meowooh custom fork**: keeps the spinners and removes Working / Thinking ellipses and text shimmer. Working stays a plain label. The editor uses pi-open-tui's two-row footer with Pi's default dark palette: directory/Git and whole-second timing opposite context, then model and effort opposite usage and cost. See [customization notes](LOCAL-CHANGES.md).
 
-Select `cc-codex` through `/theme` for a Codex CLI-inspired neutral palette and dark gray input surface.
+Select `cc-codex` through `/theme` for a Codex CLI-inspired neutral palette across the terminal background, conversation, editor, message cards and dialogs. Switching themes or exiting normally restores the previous terminal background.
 
 <p align="center">
   <img src="./assets/readme/hero.en.svg" width="100%" alt="pi-cc-extensions: a productivity extension suite for Pi">

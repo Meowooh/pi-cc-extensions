@@ -24,6 +24,7 @@ import {
 } from "./utils.ts";
 import type { FooterState, ModelMeta, UsageTotals } from "./state.ts";
 import { getUsageTotals } from "./state.ts";
+import { createCodexBackground } from "../codex-background.ts";
 
 function renderBar(theme: Theme, pct: number, barWidth: number, ascii: boolean): string {
 	const filled = Math.max(0, Math.min(barWidth, Math.round((pct / 100) * barWidth)));
@@ -224,6 +225,7 @@ export function installFooter(
 	ctx.ui.setFooter((tui, activeTheme, footerData) => {
 		// Use Open TUI's default Pi palette even when the conversation uses cc-dark.
 		const theme = ctx.ui.getTheme("dark") ?? activeTheme;
+		const background = createCodexBackground(tui, () => ctx.ui.theme);
 		ownsFooter = true;
 		hooks.setRequestRender(() => tui.requestRender());
 		const unsubBranch = footerData.onBranchChange(() => {
@@ -233,12 +235,14 @@ export function installFooter(
 
 		return {
 			dispose() {
+				background.dispose();
 				ownsFooter = false;
 				unsubBranch();
 				hooks.setRequestRender(undefined);
 			},
 			invalidate() {},
 			render(width: number): string[] {
+				background.sync();
 				if (width <= 0) return [""];
 				const state = getState();
 				const config = getConfig();

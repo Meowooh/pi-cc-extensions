@@ -1,6 +1,6 @@
 > **Meowooh 定制版**：保留转圈，去掉 Working / Thinking 的省略号与文字扫光。Working 只显示转圈和文字；输入框下方使用 pi-open-tui 的两行底栏和 Pi 默认深色配色，整秒耗时并入目录/Git 行，模型在左、上下文和用量在右。详见 [定制说明](LOCAL-CHANGES.md)。
 
-通过 `/theme` 选择 `cc-codex`，可启用 Codex CLI 风格的灰阶配色和深灰输入框。
+通过 `/theme` 选择 `cc-codex`，可启用 Codex CLI 风格的整套灰阶配色，包含终端背景、对话文字、深灰输入框、消息卡片和弹窗；切换主题或正常退出时恢复原终端底色。
 
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%">
